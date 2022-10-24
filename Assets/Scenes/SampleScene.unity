@@ -520,7 +520,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   zombiePrefab: {fileID: 7112736321276658823, guid: 2696c1c2127a01a4db3c3dca5323017b,
     type: 3}
-  zombieCount: 1000
+  zombieCount: 5000
+  simulate: 1
 --- !u!114 &1135528987
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -538,10 +539,10 @@ MonoBehaviour:
   heatMap: {fileID: 0}
   mapSize: {x: 80, y: 80}
   blockSize: 5
-  drawCrowdness: 0
+  drawCrowdness: 1
   drawBlood: 0
   drawHumanSmell: 0
-  drawWalkable: 1
+  drawWalkable: 0
 --- !u!4 &1135528988
 Transform:
   m_ObjectHideFlags: 0

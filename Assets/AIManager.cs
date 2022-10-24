@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Burst;
@@ -9,13 +10,14 @@ using UnityEngine.Jobs;
 
 public class AIManager : MonoBehaviour
 {
+    public static AIManager aIManager;
     [SerializeField]
     GameObject zombiePrefab;
 
     [SerializeField]
     int zombieCount;
 
-    struct Zombie
+    public struct Zombie
     {
         public float2 position;
         public int state;
@@ -25,12 +27,17 @@ public class AIManager : MonoBehaviour
     }
 
     List<Transform> zombieTransforms = new List<Transform>();
-    List<Zombie> zombies = new List<Zombie>();
+    public List<Zombie> zombies = new List<Zombie>();
     //NativeArray<Zombie> zombiesArray;
 
     TransformAccessArray m_AccessArray;
 
     MapManager mapManager;
+
+    private void Awake()
+    {
+        aIManager = this;
+    }
 
     private void Start()
     {
@@ -45,10 +52,12 @@ public class AIManager : MonoBehaviour
                 pos.y = UnityEngine.Random.Range(0, mapManager.mapSize.y);
             } while (!mapManager.map[pos.x + pos.y * mapManager.mapSize.x]);
 
+            float2 spawnOffset = new float2(UnityEngine.Random.Range(0f, MapManager.mapManager.blockSize), UnityEngine.Random.Range(0f, MapManager.mapManager.blockSize)) / 2;
+
             float2 spawnPointy = new float2(pos.x * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.x * mapManager.blockSize) / 2, pos.y * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.y * mapManager.blockSize) / 2);
 
             Zombie zombie = new Zombie() {
-                position = spawnPointy,
+                position = spawnPointy - spawnOffset,
                 state = 0,
                 speed = UnityEngine.Random.Range(1f, 3f),
                 senseStrength = UnityEngine.Random.Range(0.1f, 1f),
@@ -56,15 +65,16 @@ public class AIManager : MonoBehaviour
             };
 
             zombies.Add(zombie);
-            zombieTransforms.Add(Instantiate(zombiePrefab, new Vector3(zombie.position.x, 1.5f, zombie.position.y) * mapManager.blockSize / 2, quaternion.identity).transform);
+            zombieTransforms.Add(Instantiate(zombiePrefab, new Vector3(zombie.position.x, 1.5f, zombie.position.y), quaternion.identity).transform);
         }
 
         m_AccessArray = new TransformAccessArray(zombieTransforms.ToArray());
         //zombiesArray = new NativeArray<Zombie>(zombies.ToArray(), Allocator.Persistent);
     }
-
+    [SerializeField] bool simulate;
     private void Update()
     {
+        if (!simulate) return;
         SortZombies();
         NativeArray<Zombie> zombiesArrayNative = new NativeArray<Zombie>(zombies.ToArray(), Allocator.TempJob);
         AiDecision aiDecision = new AiDecision()
@@ -75,7 +85,8 @@ public class AIManager : MonoBehaviour
             blockSize = mapManager.blockSize,
             mapSizeX = mapManager.mapSize.x,
             mapSizeY = mapManager.mapSize.y,
-            walkable = mapManager.map
+            walkable = mapManager.map,
+            crowd = MapManager.mapManager.crowdedness,
         };
 
         JobHandle handle = aiDecision.Schedule(m_AccessArray.length, 64);
@@ -121,16 +132,20 @@ public class AIManager : MonoBehaviour
         }
     }
 
-    [BurstCompile]
+
+
+    //[BurstCompile]
     struct AiDecision : IJobParallelFor
     {
         [ReadOnly] public float deltaTime;
         [ReadOnly] public NativeArray<float3> mapPheromones;
         [ReadOnly] public NativeArray<bool> walkable;
+        [ReadOnly] public NativeArray<int> crowd;
         public NativeArray<Zombie> zombies;
         public float blockSize;
         public int mapSizeX;
         public int mapSizeY;
+        
 
         public void Execute(int index)
         {
@@ -148,7 +163,7 @@ public class AIManager : MonoBehaviour
 
             if (zombie.state == 0)
             {
-                desirePos = zombie.position + new float2(1, 0) * deltaTime * zombie.speed;
+                desirePos = zombie.position + GetDirectionToWalk(index) * deltaTime * zombie.speed;
             }
             else if(zombie.state == 1)
             {
@@ -171,14 +186,28 @@ public class AIManager : MonoBehaviour
             zombies[index] = zombie;
         }
 
-        int2 GetPosition(int index)
+        private float2 GetDirectionToWalk(int index)
         {
-            return new int2((int)math.round(zombies[index].position.x / blockSize + mapSizeX / 2), (int)math.round(zombies[index].position.y / blockSize + mapSizeY / 2));
+            int2 pos = GetPositionOnGrid(zombies[index].position);
+            int myCrowd = crowd[pos.x + pos.y * mapSizeX] - 1;
+
+            if (pos.x + 1 < mapSizeX && myCrowd > crowd[pos.x + 1 + pos.y * mapSizeX]) return new float2(1, 0);
+            if (pos.x - 1 > 0 && myCrowd > crowd[pos.x - 1 + pos.y * mapSizeX]) return new float2(-1, 0);
+            if (pos.y + 1 < mapSizeY && myCrowd > crowd[pos.x + (pos.y + 1) * mapSizeX]) return new float2(0, 1);
+            if (pos.y - 1 > 0 && myCrowd > crowd[pos.x + (pos.y - 1) * mapSizeX]) return new float2(0, -1);
+
+            return new float2(0, 0);
         }
         int2 GetPositionOnGrid(float2 pos)
         {
             return new int2((int)math.floor(pos.x / blockSize + mapSizeX / 2), (int)math.floor(pos.y / blockSize + mapSizeY / 2));
         }
+
+        int2 GetPosition(int index)
+        {
+            return new int2((int)math.round(zombies[index].position.x / blockSize + mapSizeX / 2), (int)math.round(zombies[index].position.y / blockSize + mapSizeY / 2));
+        }
+
 
     }
 
