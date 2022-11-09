@@ -19,6 +19,7 @@ public class AIManager : MonoBehaviour
 
     public struct Zombie
     {
+        public bool undead;
         public float2 position;
         public int state;
         public float speed;
@@ -26,14 +27,13 @@ public class AIManager : MonoBehaviour
         public float radius;
     }
 
+
     List<Transform> zombieTransforms = new List<Transform>();
     public List<Zombie> zombies = new List<Zombie>();
     //NativeArray<Zombie> zombiesArray;
 
     TransformAccessArray m_AccessArray;
-
     MapManager mapManager;
-
     private void Awake()
     {
         aIManager = this;
@@ -62,11 +62,13 @@ public class AIManager : MonoBehaviour
                 speed = UnityEngine.Random.Range(1f, 3f),
                 senseStrength = UnityEngine.Random.Range(0.1f, 1f),
                 radius = 1f,
+                undead = false,
             };
 
             zombies.Add(zombie);
             zombieTransforms.Add(Instantiate(zombiePrefab, new Vector3(zombie.position.x, 1.5f, zombie.position.y), quaternion.identity).transform);
         }
+
 
         m_AccessArray = new TransformAccessArray(zombieTransforms.ToArray());
         //zombiesArray = new NativeArray<Zombie>(zombies.ToArray(), Allocator.Persistent);
@@ -77,6 +79,7 @@ public class AIManager : MonoBehaviour
         if (!simulate) return;
         SortZombies();
         NativeArray<Zombie> zombiesArrayNative = new NativeArray<Zombie>(zombies.ToArray(), Allocator.TempJob);
+
         AiDecision aiDecision = new AiDecision()
         {
             deltaTime = Time.deltaTime,
@@ -92,21 +95,27 @@ public class AIManager : MonoBehaviour
         JobHandle handle = aiDecision.Schedule(m_AccessArray.length, 64);
         handle.Complete();
 
-        ZombieCollision colision = new ZombieCollision() { zombies = zombiesArrayNative, mapSizeX = mapManager.mapSize.x, mapSizeY = mapManager.mapSize.y, blockSize = mapManager.blockSize, walkable = mapManager.map };
+        ZombieCollision colision = new ZombieCollision() { 
+            zombies = zombiesArrayNative, 
+            mapSizeX = mapManager.mapSize.x, 
+            mapSizeY = mapManager.mapSize.y, 
+            blockSize = mapManager.blockSize, 
+            walkable = mapManager.map,
+        };
         colision.Run();
+
 
         for (int i = 0; i < zombies.Count; i++)
         {
             zombies[i] = zombiesArrayNative[i];
             zombieTransforms[i].position = new Vector3(zombies[i].position.x, 1.5f, zombies[i].position.y);
         }
-        
+
         zombiesArrayNative.Dispose();
     }
 
     private void OnDestroy()
     {
-        //zombiesArray.Dispose();
         m_AccessArray.Dispose();
     }
 
@@ -216,6 +225,7 @@ public class AIManager : MonoBehaviour
     {
         public NativeArray<Zombie> zombies;
         [ReadOnly] public NativeArray<bool> walkable;
+
         public float blockSize;
         public int mapSizeX;
         public int mapSizeY;

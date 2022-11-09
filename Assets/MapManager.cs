@@ -53,13 +53,6 @@ public class MapManager : MonoBehaviour
         for (int i = 0; i < mapPheromones.Length; i++)
         {
             mapPheromones[i] = new float3(0,0,0);
-            if(i % mapSize.x > 50 && i % mapSize.x < 55 && i / mapSize.x > 50 && i / mapSize.x < 55) mapPheromones[i] = new float3(1, 1, 1);
-        }
-
-        for (int i = 0; i < mapPheromones.Length; i++)
-        {
-            mapPheromones[i] = new float3(0, 0, 0);
-            if (i % mapSize.x > 50 && i % mapSize.x < 55 && i / mapSize.x > 50 && i / mapSize.x < 55) mapPheromones[i] = new float3(1, 1, 1);
         }
 
     }
@@ -148,7 +141,7 @@ public class MapManager : MonoBehaviour
             copyPheromones = secondCopyPheromones,
             mapSizeX = mapSize.x,
             mapSizeY = mapSize.y,
-            pheromonTransmitionLoss = 0.05f,
+            pheromonTransmitionLoss = 0.4f,
             delta = 0.1f,
             walkable = map,
         };
