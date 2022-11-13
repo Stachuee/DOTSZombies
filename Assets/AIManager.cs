@@ -25,6 +25,7 @@ public class AIManager : MonoBehaviour
         public float speed;
         public float senseStrength;
         public float radius;
+        //public float2 rotation;
     }
 
 
@@ -108,7 +109,8 @@ public class AIManager : MonoBehaviour
         for (int i = 0; i < zombies.Count; i++)
         {
             zombies[i] = zombiesArrayNative[i];
-            zombieTransforms[i].position = new Vector3(zombies[i].position.x, 1.5f, zombies[i].position.y);
+            zombieTransforms[i].position = new Vector3(zombies[i].position.x, 0, zombies[i].position.y);
+            //zombieTransforms[i].up = new Vector3(zombies[i].rotation.x, zombies[i].rotation.y);
         }
 
         zombiesArrayNative.Dispose();

@@ -69,7 +69,8 @@ public class MapManager : MonoBehaviour
     }
 
 
-
+    [SerializeField]
+    GameObject[] buildings;
     private void GenerateMap()
     {
         for (int x = 0; x < mapSize.x; x++)
@@ -112,17 +113,54 @@ public class MapManager : MonoBehaviour
         if (cityCenter.y - (mapSize.y / 2) > 0) for (int i = cityCenter.y; i >= 0; i--) for (int j = 0; j <= 1; j++) mapChar[cityCenter.x + j, cityCenter.y - i] = 'r';
         else for (int i = cityCenter.y; i < mapSize.y; i++) for (int j = 0; j <= 1; j++) mapChar[cityCenter.x + j, i] = 'r';
 
+
+        for (int x = 1; x < mapSize.x - 1; x++)
+        {
+            for (int y = 1; y < mapSize.y - 1; y++)
+            {
+                if(mapChar[x, y] == 'b')
+                {
+                    int size = math.min(SetBuilding(x, y, mapChar), 5);
+                    for (int i = 0; i < size - 1; i++) for (int j = 0; j < size - 1; j++) mapChar[x + i, y + j] = 'o';
+                    GameObject temp = Instantiate(buildings[size - 2], new Vector3(x * blockSize - mapSize.x * blockSize / 2,0, y * blockSize - mapSize.y * blockSize / 2) , quaternion.identity); // new Vector3((x + size / 2) * blockSize - blockSize / 2, 0, (y + size / 2) * blockSize - blockSize / 2) - new Vector3((mapSize.x * blockSize) / 2 ,0, (mapSize.y * blockSize) / 2)
+                    temp.transform.position += new Vector3(1, 0, 1) * (blockSize * (size - 1)) / 2;
+                    //temp.transform.position += new Vector3(1,0,1) * (size - 1) * blockSize;
+                    temp.transform.localScale *= blockSize; // * blockSize 
+                }
+            }
+        }
+
         for (int x = 0; x < mapSize.x; x++)
         {
             for (int y = 0; y < mapSize.y; y++)
             {
                 if (!(x > 0 && y > 0 && x < mapSize.x - 1 && y < mapSize.y - 1)) map[x + y * mapSize.x] = false;
                 else if(mapChar[x,y] == 'r') map[x + y * mapSize.x] = true;
-                else if (mapChar[x, y] == 'b') map[x + y * mapSize.x] = false;
+                else if (mapChar[x, y] == 'b' || mapChar[x, y] == 'o') map[x + y * mapSize.x] = false;
             }
         }
     }
 
+    int SetBuilding(int x, int y, char[,] mapChar)
+    {
+        int size = 0;
+        bool fits = true;
+        do
+        {
+            size++;
+            for (int i = x; i < x + size; i++)
+            {
+                if (i > mapSize.x - 1 || y + size - 1 > mapSize.y - 1 || mapChar[i, y + size - 1] != 'b') fits = false;
+            }
+            for(int j = y; j < y + size; j++)
+            {
+                if (j > mapSize.y - 1 || x + size - 1 > mapSize.x - 1 || mapChar[x + size - 1, j] != 'b') fits = false;
+            }
+        } 
+        while (fits);
+
+        return size;
+    }
 
 
     [SerializeField] bool drawCrowdness;
