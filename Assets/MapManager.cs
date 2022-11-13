@@ -232,6 +232,17 @@ public class MapManager : MonoBehaviour
                 }
             }
         }
+        else
+        {
+            for (int x = 0; x < mapSize.x; x++)
+            {
+                for (int y = 0; y < mapSize.y; y++)
+                {
+                    Color color = new Color(0, 0, 0, 0);
+                    texture.SetPixel(x, y, color);
+                }
+            }
+        }
 
         texture.Apply();
         heatMap = texture;

@@ -17,7 +17,7 @@ public class CamScript : MonoBehaviour
     Vector2 minMaxPanSpeed;
     Vector2 leftBottomCorner;
     Vector2 rightTopCorner;
-
+        
     float camSpeed;
 
     [SerializeField][Range(0f, 0.5f)]
