@@ -563,9 +563,9 @@ MonoBehaviour:
   - {fileID: 1961075724198791654, guid: 0f8f2025856011a4fa1b904cfbf0c0e3, type: 3}
   - {fileID: 42084553528651696, guid: a3a5470bacccb5d4fb435d319cebddd9, type: 3}
   drawCrowdness: 0
-  drawBlood: 0
-  drawHumanSmell: 0
-  drawWalkable: 1
+  drawBlood: 1
+  drawAlertness: 0
+  drawWalkable: 0
 --- !u!4 &1135528988
 Transform:
   m_ObjectHideFlags: 0

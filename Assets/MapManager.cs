@@ -54,7 +54,6 @@ public class MapManager : MonoBehaviour
         {
             mapPheromones[i] = new float3(0,0,0);
         }
-
     }
     private void OnDestroy()
     {
@@ -165,7 +164,7 @@ public class MapManager : MonoBehaviour
 
     [SerializeField] bool drawCrowdness;
     [SerializeField] bool drawBlood;
-    [SerializeField] bool drawHumanSmell;
+    [SerializeField] bool drawAlertness;
     [SerializeField] bool drawWalkable;
 
     void TextureFromPheromonMap()
@@ -173,6 +172,7 @@ public class MapManager : MonoBehaviour
 
         NativeArray<float3> copyPheromones = new NativeArray<float3>(mapPheromones, Allocator.TempJob);
         NativeArray<float3> secondCopyPheromones = new NativeArray<float3>(mapPheromones, Allocator.TempJob);
+
         CalculatePheromonesSpread calc = new CalculatePheromonesSpread()
         {
             pheromones = copyPheromones,
@@ -194,26 +194,26 @@ public class MapManager : MonoBehaviour
         secondCopyPheromones.Dispose();
 
 
-        if (drawBlood || drawCrowdness || drawHumanSmell)
+        if (drawBlood || drawCrowdness || drawAlertness)
         {
             for (int x = 0; x < mapSize.x; x++)
             {
                 for (int y = 0; y < mapSize.y; y++)
                 {
                     Color color = new Color(0, 0, 0, 1);
-                    if (drawHumanSmell)
-                    {
-                        color.b = mapPheromones[x + y * mapSize.y].x;
-                    }
                     if (drawCrowdness)
                     {
-                        //color.g = mapPheromones[x + y * mapSize.y].y;
-                        if (crowdedness[x + y * mapSize.y] != int.MaxValue) color.g = (float)crowdedness[x + y * mapSize.y] / 3;
-                        else color.g = 0;
+                        color.g = mapPheromones[x + y * mapSize.y].x;
+                        //if (crowdedness[x + y * mapSize.y] != int.MaxValue) color.g = (float)crowdedness[x + y * mapSize.y] / 3;
+                        //else color.g = 0;
+                    }
+                    if (drawAlertness)
+                    {
+                        color.b = mapPheromones[x + y * mapSize.y].y;
                     }
                     if (drawBlood)
                     {
-                        color.r = mapPheromones[x + y * mapSize.y].z;
+                        color.b = mapPheromones[x + y * mapSize.y].z;
                     }
                     texture.SetPixel(x, y, color);
                 }
@@ -366,7 +366,7 @@ public class MapManager : MonoBehaviour
                 }
             }
 
-            sumPheromones /= sumPheromonesAfter;
+            sumPheromones /= (sumPheromonesAfter + 1);
 
             for (int x = 0; x < mapSizeX; x++)
             {

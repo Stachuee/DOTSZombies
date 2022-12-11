@@ -25,6 +25,7 @@ public class AIManager : MonoBehaviour
         public float speed;
         public float senseStrength;
         public float radius;
+        public int positionOnGrid;
         //public float2 rotation;
     }
 
@@ -90,11 +91,29 @@ public class AIManager : MonoBehaviour
             mapSizeX = mapManager.mapSize.x,
             mapSizeY = mapManager.mapSize.y,
             walkable = mapManager.map,
-            crowd = MapManager.mapManager.crowdedness,
+            //crowd = MapManager.mapManager.crowdedness,
         };
 
         JobHandle handle = aiDecision.Schedule(m_AccessArray.length, 64);
         handle.Complete();
+
+        NativeArray<float3> copyPheromones = new NativeArray<float3>(mapManager.mapPheromones, Allocator.TempJob);
+
+        ZombiePheromones zombiePheromones = new ZombiePheromones()
+        {
+            zombies = zombiesArrayNative,
+            mapPheromones = copyPheromones,
+            mapSizeX = mapManager.mapSize.x,
+            mapSizeY = mapManager.mapSize.y,
+            blockSize = mapManager.blockSize,
+        };
+        zombiePheromones.Run();
+
+        for(int i = 0; i < copyPheromones.Length; i++)
+        {   
+            mapManager.mapPheromones[i] = copyPheromones[i];
+            //Debug.Log(copyPheromones[i]);
+        }
 
         ZombieCollision colision = new ZombieCollision() { 
             zombies = zombiesArrayNative, 
@@ -114,6 +133,7 @@ public class AIManager : MonoBehaviour
         }
 
         zombiesArrayNative.Dispose();
+        copyPheromones.Dispose();
     }
 
     private void OnDestroy()
@@ -151,7 +171,7 @@ public class AIManager : MonoBehaviour
         [ReadOnly] public float deltaTime;
         [ReadOnly] public NativeArray<float3> mapPheromones;
         [ReadOnly] public NativeArray<bool> walkable;
-        [ReadOnly] public NativeArray<int> crowd;
+        //[ReadOnly] public NativeArray<int> crowd;
         public NativeArray<Zombie> zombies;
         public float blockSize;
         public int mapSizeX;
@@ -192,7 +212,12 @@ public class AIManager : MonoBehaviour
             int2 tile = GetPositionOnGrid(desirePos);
             if (walkable[tile.x + tile.y * mapSizeX])
             {
+                zombie.positionOnGrid = tile.x + tile.y * mapSizeX;
                 zombie.position = desirePos;
+            }
+            else
+            {
+                zombie.positionOnGrid = pos.x + pos.y * mapSizeX;
             }
             zombies[index] = zombie;
         }
@@ -200,13 +225,33 @@ public class AIManager : MonoBehaviour
         private float2 GetDirectionToWalk(int index)
         {
             int2 pos = GetPositionOnGrid(zombies[index].position);
-            int myCrowd = crowd[pos.x + pos.y * mapSizeX] - 1;
+            int indexInGrid = pos.x + 1 + pos.y * mapSizeX;
+            //int myCrowd = crowd[pos.x + pos.y * mapSizeX] - 1;
 
-            if (pos.x + 1 < mapSizeX && myCrowd > crowd[pos.x + 1 + pos.y * mapSizeX]) return new float2(1, 0);
-            if (pos.x - 1 > 0 && myCrowd > crowd[pos.x - 1 + pos.y * mapSizeX]) return new float2(-1, 0);
-            if (pos.y + 1 < mapSizeY && myCrowd > crowd[pos.x + (pos.y + 1) * mapSizeX]) return new float2(0, 1);
-            if (pos.y - 1 > 0 && myCrowd > crowd[pos.x + (pos.y - 1) * mapSizeX]) return new float2(0, -1);
+            //if (pos.x + 1 < mapSizeX && myCrowd > crowd[pos.x + 1 + pos.y * mapSizeX]) return new float2(1, 0);
+            //if (pos.x - 1 > 0 && myCrowd > crowd[pos.x - 1 + pos.y * mapSizeX]) return new float2(-1, 0);
+            //if (pos.y + 1 < mapSizeY && myCrowd > crowd[pos.x + (pos.y + 1) * mapSizeX]) return new float2(0, 1);
+            //if (pos.y - 1 > 0 && myCrowd > crowd[pos.x + (pos.y - 1) * mapSizeX]) return new float2(0, -1);
 
+            //if (pos.x + 1 < mapSizeX && mapPheromones[indexInGrid].x > mapPheromones[indexInGrid + 1].x && walkable[indexInGrid + 1]) return new float2(1, 0);
+            //if (pos.x - 1 > 0 && mapPheromones[indexInGrid].x > mapPheromones[indexInGrid - 1].x && walkable[indexInGrid - 1]) return new float2(-1, 0);
+            //if (pos.y + 1 < mapSizeY && mapPheromones[indexInGrid].x > mapPheromones[indexInGrid + mapSizeX].x && walkable[indexInGrid + mapSizeX]) return new float2(0, 1);
+            //if (pos.y - 1 > 0 && mapPheromones[indexInGrid].x > mapPheromones[indexInGrid - mapSizeX].x && walkable[indexInGrid - mapSizeX]) return new float2(0, -1);
+
+            float2 toGo = new float2();
+
+            if (pos.x + 1 < mapSizeX && walkable[indexInGrid + 1]) toGo.x += mapPheromones[indexInGrid + 1].x - mapPheromones[indexInGrid].x;
+            else toGo.x -= 1;
+            if (pos.x - 1 > 0 && walkable[indexInGrid - 1]) toGo.x -= mapPheromones[indexInGrid - 1].x - mapPheromones[indexInGrid].x;
+            else toGo.x += 1;
+            if (pos.y + 1 < mapSizeY && walkable[indexInGrid + mapSizeX]) toGo.y += mapPheromones[indexInGrid + mapSizeX].x - mapPheromones[indexInGrid].x;
+            else toGo.y -= 1;
+            if (pos.y - 1 > 0 && walkable[indexInGrid - mapSizeX]) toGo.y -= mapPheromones[indexInGrid - mapSizeX].x - mapPheromones[indexInGrid].x;
+            else toGo.y += 1;
+
+            return toGo;
+
+            if (math.length(toGo) != 0) return math.normalize(toGo);
             return new float2(0, 0);
         }
         int2 GetPositionOnGrid(float2 pos)
@@ -221,6 +266,43 @@ public class AIManager : MonoBehaviour
 
 
     }
+
+    [BurstCompile]
+    struct ZombiePheromones : IJob
+    {
+        public NativeArray<float3> mapPheromones;
+        [ReadOnly] public NativeArray<Zombie> zombies;
+        public float blockSize;
+        public int mapSizeX;
+        public int mapSizeY;
+
+        public void Execute()
+        {
+            for (int i = 0; i < zombies.Length; i++)
+            {
+                Zombie zombie = zombies[i];
+                float3 pheromonOnTile = mapPheromones[zombie.positionOnGrid];
+                switch (zombies[i].state)
+                {
+                    case 0: // iddle
+                        pheromonOnTile.x += 0.001f;
+                        break;
+                    case 1: // allert
+                        pheromonOnTile.x += 0.001f;
+                        //pheromonOnTile.y += 0.01f;
+                        break;
+                    case 2: // attacking
+                        pheromonOnTile.y += 0.1f;
+                        break;
+                    case 3:
+                        break;
+                }
+
+                mapPheromones[zombie.positionOnGrid] = pheromonOnTile;
+            }
+        }
+    }
+
 
     [BurstCompile]
     struct ZombieCollision : IJob
@@ -285,6 +367,7 @@ public class AIManager : MonoBehaviour
             return new int2((int)math.floor(pos.x / blockSize + mapSizeX / 2), (int)math.floor(pos.y / blockSize + mapSizeY / 2));
         }
     }
+
 
 
 }
