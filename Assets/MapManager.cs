@@ -29,14 +29,14 @@ public class MapManager : MonoBehaviour
     public NativeArray<bool> map;
 
 
-    public NativeArray<float3> mapPheromones;
+    public NativeArray<float4> mapPheromones;
     public NativeArray<int> crowdedness;
 
     private void Awake()
     {
         mapManager = this;
 
-        mapPheromones = new NativeArray<float3>(mapSize.x * mapSize.y, Allocator.Persistent);
+        mapPheromones = new NativeArray<float4>(mapSize.x * mapSize.y, Allocator.Persistent);
         map = new NativeArray<bool>(mapSize.x * mapSize.y, Allocator.Persistent);
         crowdedness = new NativeArray<int>(mapSize.x * mapSize.y, Allocator.Persistent);
         GenerateMap();
@@ -52,7 +52,7 @@ public class MapManager : MonoBehaviour
 
         for (int i = 0; i < mapPheromones.Length; i++)
         {
-            mapPheromones[i] = new float3(0,0,0);
+            mapPheromones[i] = new float4(0,0,0,0);
         }
     }
     private void OnDestroy()
@@ -163,15 +163,17 @@ public class MapManager : MonoBehaviour
 
 
     [SerializeField] bool drawCrowdness;
-    [SerializeField] bool drawBlood;
     [SerializeField] bool drawAlertness;
+    [SerializeField] bool drawHumanSmell;
+    [SerializeField] bool drawBlood;
+
     [SerializeField] bool drawWalkable;
 
     void TextureFromPheromonMap()
     {
 
-        NativeArray<float3> copyPheromones = new NativeArray<float3>(mapPheromones, Allocator.TempJob);
-        NativeArray<float3> secondCopyPheromones = new NativeArray<float3>(mapPheromones, Allocator.TempJob);
+        NativeArray<float4> copyPheromones = new NativeArray<float4>(mapPheromones, Allocator.TempJob);
+        NativeArray<float4> secondCopyPheromones = new NativeArray<float4>(mapPheromones, Allocator.TempJob);
 
         CalculatePheromonesSpread calc = new CalculatePheromonesSpread()
         {
@@ -179,7 +181,7 @@ public class MapManager : MonoBehaviour
             copyPheromones = secondCopyPheromones,
             mapSizeX = mapSize.x,
             mapSizeY = mapSize.y,
-            pheromonTransmitionLoss = 0.4f,
+            pheromonTransmitionLoss = 0.1f,
             delta = 0.1f,
             walkable = map,
         };
@@ -194,27 +196,32 @@ public class MapManager : MonoBehaviour
         secondCopyPheromones.Dispose();
 
 
-        if (drawBlood || drawCrowdness || drawAlertness)
+
+        if (drawBlood || drawCrowdness || drawAlertness || drawHumanSmell)
         {
             for (int x = 0; x < mapSize.x; x++)
             {
                 for (int y = 0; y < mapSize.y; y++)
                 {
+
                     Color color = new Color(0, 0, 0, 1);
                     if (drawCrowdness)
                     {
                         color.g = mapPheromones[x + y * mapSize.y].x;
-                        //if (crowdedness[x + y * mapSize.y] != int.MaxValue) color.g = (float)crowdedness[x + y * mapSize.y] / 3;
-                        //else color.g = 0;
                     }
-                    if (drawAlertness)
+                    else if (drawAlertness)
                     {
-                        color.b = mapPheromones[x + y * mapSize.y].y;
+                        color.g = mapPheromones[x + y * mapSize.y].y;
                     }
-                    if (drawBlood)
+                    else if (drawHumanSmell)
                     {
-                        color.b = mapPheromones[x + y * mapSize.y].z;
+                        color.g = mapPheromones[x + y * mapSize.y].z;
                     }
+                    else if (drawBlood)
+                    {
+                        color.g = mapPheromones[x + y * mapSize.y].w;
+                    }
+
                     texture.SetPixel(x, y, color);
                 }
             }
@@ -342,44 +349,44 @@ public class MapManager : MonoBehaviour
     [BurstCompile]
     struct CalculatePheromonesSpread : IJob
     {
-        public NativeArray<float3> pheromones;
-        public NativeArray<float3> copyPheromones;
+        public NativeArray<float4> pheromones;
+        public NativeArray<float4> copyPheromones;
         [ReadOnly] public NativeArray<bool> walkable;
         public int mapSizeX;
         public int mapSizeY;
-        public float3 pheromonTransmitionLoss;
+        public float4 pheromonTransmitionLoss;
         public float delta;
         public void Execute()
         {
-            float3 sumPheromones = new float3(0,0,0);
-            float3 sumPheromonesAfter = new float3(0, 0, 0);
+            float4 sumPheromones = new float4(0,0,0,0);
+            float4 sumPheromonesAfter = new float4(0, 0, 0,0);
 
             for (int x = 0; x < mapSizeX; x++)
             {
                 for (int y = 0; y < mapSizeY; y++)
                 {
                     if (!walkable[x + y * mapSizeX]) continue;
-                    float3 p = GetPheromones(x, y);
+                    float4 p = GetPheromones(x, y);
                     pheromones[x + y * mapSizeX] = p + delta * (GetAveragePheromones(x,y) - p);
                     sumPheromones += copyPheromones[x + y * mapSizeX];
                     sumPheromonesAfter += pheromones[x + y * mapSizeX];
                 }
             }
 
-            sumPheromones /= (sumPheromonesAfter + 1);
+            //sumPheromones /= (sumPheromonesAfter + 1);
 
             for (int x = 0; x < mapSizeX; x++)
             {
                 for (int y = 0; y < mapSizeY; y++)
                 {
-                    pheromones[x + y * mapSizeX] *= sumPheromones * (1 - pheromonTransmitionLoss * delta);
+                    pheromones[x + y * mapSizeX] *=  (1 - pheromonTransmitionLoss * delta); // sumPheromones *
                 }
             }
         }
-        public float3 GetAveragePheromones(int x, int y)
+        public float4 GetAveragePheromones(int x, int y)
         {
             int neighCount = 0;
-            float3 pheromones = new float3(0,0,0);
+            float4 pheromones = new float4(0,0,0,0);
 
             if (x > 0 && walkable[x - 1 + y * mapSizeX]) // 
             {
@@ -404,7 +411,7 @@ public class MapManager : MonoBehaviour
             return pheromones / neighCount;
         }
 
-        public float3 GetPheromones(int x, int y)
+        public float4 GetPheromones(int x, int y)
         {
             return copyPheromones[x + y * mapSizeX];
         }

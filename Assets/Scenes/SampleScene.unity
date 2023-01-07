@@ -516,6 +516,7 @@ GameObject:
   - component: {fileID: 1135528988}
   - component: {fileID: 1135528987}
   - component: {fileID: 1135528986}
+  - component: {fileID: 1135528989}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -537,7 +538,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   zombiePrefab: {fileID: 7112736321276658823, guid: 2696c1c2127a01a4db3c3dca5323017b,
     type: 3}
+  humanPrefab: {fileID: 7112736321276658823, guid: 6bd307e2c7b88d248b054e7ecbc7d323,
+    type: 3}
   zombieCount: 1000
+  humanCount: 50
   simulate: 1
 --- !u!114 &1135528987
 MonoBehaviour:
@@ -581,6 +585,18 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1135528989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1135528985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa388086300ee714081ee4da39c763f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1607252560
 GameObject:
   m_ObjectHideFlags: 0
