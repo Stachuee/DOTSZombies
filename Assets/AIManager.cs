@@ -364,7 +364,7 @@ public class AIManager : MonoBehaviour
 
             human.positionOnGrid = posOnGrid.x + posOnGrid.y * mapSizeX;
 
-            float2 dir = math.normalize(GetDestination(posOnGrid) * 0.45f + GetAvoidance(human) * 0.35f + GetWalls(posOnGrid) * 0.15f);// + human.generalDirectionOfTravel * 0.1f + GetWalls(posOnGrid) * 0.1f);
+            float2 dir = math.normalize(GetDestination(posOnGrid) * 0.35f + GetAvoidance(human) * 0.45f + GetWalls(posOnGrid) * 0.15f);// + human.generalDirectionOfTravel * 0.1f + GetWalls(posOnGrid) * 0.1f);
             float2 desirePos = human.position + dir * deltaTime * human.speed;
 
             int2 tile = GetPositionOnGrid(desirePos);
