@@ -47,6 +47,8 @@ public class AIManager : MonoBehaviour
         public HumanState state;
         public float hp;
         public float maxHp;
+        public bool dead;
+        public float timeOfDeath;
         public float speed;
         public float radius;
         public float avoidanceRadius;
@@ -99,7 +101,7 @@ public class AIManager : MonoBehaviour
                 damage = UnityEngine.Random.Range(0.4f, 0.5f),
                 radius = 1f,
                 rotation = 0,
-                sporeBurst = UnityEngine.Random.Range(0f, 1f) > 0.5 ? true : false,
+                sporeBurst = UnityEngine.Random.Range(0f, 1f) > 0.80 ? true : false,
             };
 
             zombies.Add(zombie);
@@ -165,6 +167,7 @@ public class AIManager : MonoBehaviour
         HumanDecision humanDecision = new HumanDecision()
         {
             deltaTime = Time.deltaTime,
+            time = Time.time,
             humans = humanArrayNative,
             zombies = zombiesArrayNative,
             mapPheromones = mapManager.mapPheromones,
@@ -264,7 +267,6 @@ public class AIManager : MonoBehaviour
         int2 mapPos = new int2((int)math.floor(pos.x / mapManager.blockSize + mapManager.mapSize.x / 2), (int)math.floor(pos.y / mapManager.blockSize + mapManager.mapSize.y / 2));
         if (!mapManager.map[mapPos.x + mapPos.y * mapManager.mapSize.x]) return;
 
-
         for (int i = 0; i < humans.Count; i++)
         {
             Human human = humans[i];
@@ -275,6 +277,7 @@ public class AIManager : MonoBehaviour
                 human.position = pos;
                 human.active = true;
                 human.hp = human.maxHp;
+                human.dead = false;
                 humans[i] = human;
                 break;
             }
@@ -321,10 +324,11 @@ public class AIManager : MonoBehaviour
 
     }
 
-    [BurstCompile]
+    //[BurstCompile]
     struct HumanDecision : IJobParallelFor
     {
         [ReadOnly] public float deltaTime;
+        [ReadOnly] public float time;
         [ReadOnly] public NativeArray<bool> walkable;
         [ReadOnly] public NativeArray<float4> mapPheromones;
         [ReadOnly] public NativeArray<Zombie> zombies;
@@ -337,9 +341,21 @@ public class AIManager : MonoBehaviour
         {
             Human human = humans[index];
 
-            if (human.hp <= 0)
+            if (!human.active) return;
+            if(human.dead)
             {
-                human.active = false;
+                if (human.timeOfDeath + 5f < time)
+                {
+                    human.active = false;
+                    humans[index] = human;
+                    return;
+                }
+                return;
+            }
+            else if (human.hp <= 0)
+            {
+                human.dead = true;
+                human.timeOfDeath = time;
                 humans[index] = human;
                 return;
             }
@@ -348,7 +364,7 @@ public class AIManager : MonoBehaviour
 
             human.positionOnGrid = posOnGrid.x + posOnGrid.y * mapSizeX;
 
-            float2 dir = math.normalize(new float2(0, 1) * 0.4f + GetAvoidance(human) * 0.6f);
+            float2 dir = math.normalize(GetDestination(posOnGrid) * 0.45f + GetAvoidance(human) * 0.35f + GetWalls(posOnGrid) * 0.15f);// + human.generalDirectionOfTravel * 0.1f + GetWalls(posOnGrid) * 0.1f);
             float2 desirePos = human.position + dir * deltaTime * human.speed;
 
             int2 tile = GetPositionOnGrid(desirePos);
@@ -394,6 +410,71 @@ public class AIManager : MonoBehaviour
             return math.length(direction) > 0 ? math.normalize(direction) : direction;
         }
 
+        float2 GetWalls(int2 pos)
+        {
+            float2 direction = new float2();
+            if (pos.x + 1 < mapSizeX && !walkable[pos.x + 1 + pos.y * mapSizeX]) direction.x -= 1;
+            if (pos.x - 1 > 0 && !walkable[pos.x - 1 + pos.y * mapSizeX]) direction.x += 1;
+            if (pos.y + 1 < mapSizeY && !walkable[pos.x + (pos.y + 1) * mapSizeX]) direction.y += 1;
+            if (pos.y - 1 > 0 && !walkable[pos.x + (pos.y - 1) * mapSizeX]) direction.y -= 1;
+            return math.length(direction) > 0 ? math.normalize(direction) : direction;
+        }
+
+        float2 GetDestination(int2 pos)
+        {
+            int indexInGrid = pos.x + pos.y * mapSizeX;
+
+            float2 toGo = new float2();
+            float dislikeLeft, dislikeRight, dislikeUp, dislikeDown;
+
+            if (pos.x + 1 < mapSizeX && walkable[indexInGrid + 1]) dislikeRight = mapPheromones[indexInGrid + 1].x;
+            else dislikeRight = -1;
+
+            if (pos.x - 1 > 0 && walkable[indexInGrid - 1]) dislikeLeft = mapPheromones[indexInGrid - 1].x ;
+            else dislikeLeft = -1;
+
+
+            if (pos.y - 1 > 0 && walkable[indexInGrid - mapSizeX]) dislikeUp = mapPheromones[indexInGrid + mapSizeX].x;
+            else dislikeUp = -1;
+
+            if (pos.y + 1 < mapSizeY && walkable[indexInGrid + mapSizeX]) dislikeDown = mapPheromones[indexInGrid - mapSizeX].x;
+            else dislikeDown = -1;
+
+            if (dislikeRight < 0 && dislikeLeft < 0) toGo.x = 0;
+
+            if (dislikeLeft > 0 && dislikeRight > 0)
+            {
+                toGo.x = -(dislikeRight - dislikeLeft);
+            }
+            else if (dislikeLeft > 0)
+            {
+                toGo.x = -0.1f;
+            }
+            else if (dislikeRight > 0)
+            {
+                toGo.x = 0.1f;
+            }
+
+            if (dislikeUp < 0 && dislikeDown < 0) toGo.y = 0;
+
+            if (dislikeUp > 0 && dislikeDown > 0)
+            {
+                toGo.y = -(dislikeUp - dislikeDown);
+            }
+            else if (dislikeUp > 0)
+            {
+                toGo.y = -0.1f;
+            }
+            else if (dislikeDown > 0)
+            {
+                toGo.y = 0.1f;
+            }
+
+
+            return math.length(toGo) > 0 ? math.normalize(toGo) : toGo;
+        }
+
+
         int2 GetPositionOnGrid(float2 pos)
         {
             return new int2((int)math.floor(pos.x / blockSize + mapSizeX / 2), (int)math.floor(pos.y / blockSize + mapSizeY / 2));
@@ -426,6 +507,7 @@ public class AIManager : MonoBehaviour
 
             if (myPheromones.z > 0.2 * zombie.senseStrength) zombie.state = Zombie.ZombieState.Attacing;
             else if (myPheromones.y > 0.2 * zombie.senseStrength) zombie.state = Zombie.ZombieState.Allert;
+            else if (myPheromones.w > 0.1 * zombie.senseStrength) zombie.state = Zombie.ZombieState.Allert;
             else zombie.state = Zombie.ZombieState.Iddle;
 
             float2 desirePos = zombie.position;
@@ -487,7 +569,7 @@ public class AIManager : MonoBehaviour
             lookAt.x = desirePos.x - zombie.position.x;
             lookAt.y = desirePos.y - zombie.position.y;
 
-            zombie.rotation = (math.atan2(lookAt.y, lookAt.x) * 180) / math.PI;
+            //zombie.rotation = (math.atan2(lookAt.y, lookAt.x) * 180) / math.PI;
 
             if (walkable[tile.x + tile.y * mapSizeX])
             {
@@ -639,10 +721,8 @@ public class AIManager : MonoBehaviour
                         break;
                 }
 
-                if(human.hp < human.maxHp * 0.5f)
-                {
-                    pheromonOnTile.w += 0.3f * deltaTime;
-                }
+                pheromonOnTile.w += 2f * deltaTime * (1 - (human.hp / human.maxHp));
+
 
                 mapPheromones[human.positionOnGrid] = pheromonOnTile;
             }
@@ -809,7 +889,7 @@ public class AIManager : MonoBehaviour
                             }
 
                             bot1.position += moveVector1;
-                            bot1.hp -= bot2.damage * timeDelta;
+                            bot1.hp = math.clamp(bot1.hp - bot2.damage * timeDelta, 0, bot1.maxHp);
                             bot2.position += moveVector2;
 
                             zombies[j] = bot2;

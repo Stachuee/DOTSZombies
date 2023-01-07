@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7112736321276658820}
   m_Layer: 0
-  m_Name: Human
+  m_Name: ZombieTemp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -94,7 +94,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: d1e6ed1ce2ea5c84d8875c31ec77435f, type: 2}
+  - {fileID: 2100000, guid: cafba1220748154438d3679c9c81662f, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

@@ -536,7 +536,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 18948b79a7f8fc14f96f4a624c271f39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  zombiePrefab: {fileID: 7112736321276658823, guid: 2696c1c2127a01a4db3c3dca5323017b,
+  zombiePrefab: {fileID: 7112736321276658823, guid: 85ec3f05109bdcf45b757276fa267081,
     type: 3}
   humanPrefab: {fileID: 7112736321276658823, guid: 6bd307e2c7b88d248b054e7ecbc7d323,
     type: 3}
@@ -567,8 +567,9 @@ MonoBehaviour:
   - {fileID: 1961075724198791654, guid: 0f8f2025856011a4fa1b904cfbf0c0e3, type: 3}
   - {fileID: 42084553528651696, guid: a3a5470bacccb5d4fb435d319cebddd9, type: 3}
   drawCrowdness: 0
-  drawBlood: 1
   drawAlertness: 0
+  drawHumanSmell: 0
+  drawBlood: 0
   drawWalkable: 0
 --- !u!4 &1135528988
 Transform:

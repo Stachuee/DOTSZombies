@@ -181,7 +181,7 @@ public class MapManager : MonoBehaviour
             copyPheromones = secondCopyPheromones,
             mapSizeX = mapSize.x,
             mapSizeY = mapSize.y,
-            pheromonTransmitionLoss = 0.1f,
+            pheromonTransmitionLoss = new float4(0.1f, 0.1f, 0.1f, 0.02f),
             delta = 0.1f,
             walkable = map,
         };
