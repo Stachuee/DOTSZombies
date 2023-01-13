@@ -16,10 +16,6 @@ public class AIManager : MonoBehaviour
     [SerializeField]
     GameObject humanPrefab;
 
-    [SerializeField]
-    int zombieCount;
-    [SerializeField]
-    int humanCount;
 
 
     public struct Zombie
@@ -57,6 +53,26 @@ public class AIManager : MonoBehaviour
     }
 
 
+    public float zombieCount;
+    public float zombieSpeed;
+    public float zombieDamage;
+    public float zombieSensitivity;
+    public float zombieChance;
+    public float zombieStrength;
+
+
+    public float humanCount;
+    public float humanSpeed;
+    public float humanHp;
+    public float humanZombie;
+    public float humanSmell;
+    public float humanWalls;
+
+
+    public int humanSpawnType;
+    public int zombieSpawnType;
+
+
     List<Transform> zombieTransforms = new List<Transform>();
     public List<Zombie> zombies = new List<Zombie>();
     List<Transform> humanTransforms = new List<Transform>();
@@ -66,11 +82,7 @@ public class AIManager : MonoBehaviour
     TransformAccessArray z_AccessArray;
     TransformAccessArray h_AccessArray;
     MapManager mapManager;
-
-
-    private const int MOVE_STRAIGHT_COST = 10;
-    private const int MOVE_DIAGONAL_COST = 14;
-
+    
     private void Awake()
     {
         aIManager = this;
@@ -79,38 +91,39 @@ public class AIManager : MonoBehaviour
     private void Start()
     {
         mapManager = MapManager.mapManager;
+        simulate = false;
+    }
+    [SerializeField] bool simulate;
+
+
+    public void Populate()
+    {
         for (int i = 0; i < zombieCount; i++)
         {
-            int2 pos;
-
-            do
-            {
-                pos.x = UnityEngine.Random.Range(0, mapManager.mapSize.x);
-                pos.y = UnityEngine.Random.Range(0, mapManager.mapSize.y);
-            } while (!mapManager.map[pos.x + pos.y * mapManager.mapSize.x]);
+            int2 pos = getPosition(zombieSpawnType);
 
             float2 spawnOffset = new float2(UnityEngine.Random.Range(0f, MapManager.mapManager.blockSize), UnityEngine.Random.Range(0f, MapManager.mapManager.blockSize)) / 2;
 
             float2 spawnPointy = new float2(pos.x * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.x * mapManager.blockSize) / 2, pos.y * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.y * mapManager.blockSize) / 2);
 
-            Zombie zombie = new Zombie() {
+            Zombie zombie = new Zombie()
+            {
                 position = spawnPointy - spawnOffset,
                 state = 0,
-                speed = UnityEngine.Random.Range(0.3f, 0.4f),
-                senseStrength = UnityEngine.Random.Range(0.1f, 1f),
-                damage = UnityEngine.Random.Range(0.4f, 0.5f),
+                speed = zombieSpeed,
+                senseStrength = zombieSensitivity,
+                damage = zombieDamage,
                 radius = 1f,
                 rotation = 0,
-                sporeBurst = UnityEngine.Random.Range(0f, 1f) > 0.80 ? true : false,
+                sporeBurst = UnityEngine.Random.Range(0f, 1f) < zombieChance ? true : false,
             };
-
             zombies.Add(zombie);
             zombieTransforms.Add(Instantiate(zombiePrefab, new Vector3(zombie.position.x, 1.5f, zombie.position.y), quaternion.identity).transform);
         }
 
         for (int i = 0; i < humanCount; i++)
         {
-            int2 pos = new int2(0,0);
+            int2 pos = new int2(0, 0);
 
             float2 spawnPointy = new float2(pos.x * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.x * mapManager.blockSize) / 2, pos.y * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.y * mapManager.blockSize) / 2);
 
@@ -119,11 +132,11 @@ public class AIManager : MonoBehaviour
                 active = false,
                 position = spawnPointy,
                 state = 0,
-                speed = UnityEngine.Random.Range(0.5f, 0.7f),
+                speed = humanSpeed,
                 radius = 1f,
                 avoidanceRadius = 2f,
-                maxHp = 1,
-                hp = 1,
+                maxHp = humanHp,
+                hp = humanHp,
                 rotation = 0,
             };
 
@@ -132,13 +145,45 @@ public class AIManager : MonoBehaviour
             temp.SetActive(false);
             humanTransforms.Add(temp.transform);
         }
-
+        
+        //SpawnHumans();
 
         z_AccessArray = new TransformAccessArray(zombieTransforms.ToArray());
         h_AccessArray = new TransformAccessArray(humanTransforms.ToArray());
+        simulate = true;
         //zombiesArray = new NativeArray<Zombie>(zombies.ToArray(), Allocator.Persistent);
     }
-    [SerializeField] bool simulate;
+
+    public int2 getPosition(int spawnType)
+    {
+        int2 toReturn = new int2();
+        switch(spawnType)
+        {
+            case 0:
+                do
+                {
+                    toReturn.x = UnityEngine.Random.Range(0, mapManager.mapSize.x);
+                    toReturn.y = UnityEngine.Random.Range(0, mapManager.mapSize.y);
+                } while (!mapManager.map[toReturn.x + toReturn.y * mapManager.mapSize.x]);
+                break;
+            case 1:
+                do
+                {
+                    toReturn.x = UnityEngine.Random.Range(0, mapManager.mapSize.x / 4) * (UnityEngine.Random.Range(0, 2) * 2 - 1) + mapManager.mapSize.x / 2;
+                    toReturn.y = UnityEngine.Random.Range(0, mapManager.mapSize.y / 4) * (UnityEngine.Random.Range(0, 2) * 2 - 1) + mapManager.mapSize.x / 2;
+                } while (!mapManager.map[toReturn.x + toReturn.y * mapManager.mapSize.x]);
+                break;
+            case 2:
+                do
+                {
+                    int side = UnityEngine.Random.Range(0, 2);
+                    toReturn.x = side == 0 ? (UnityEngine.Random.Range(0, mapManager.mapSize.x / 4) + mapManager.mapSize.x / 4) * (UnityEngine.Random.Range(0, 2) * 2 - 1) + mapManager.mapSize.x / 2 : UnityEngine.Random.Range(0, mapManager.mapSize.x);
+                    toReturn.y = side == 1 ? (UnityEngine.Random.Range(0, mapManager.mapSize.y / 4) + mapManager.mapSize.y / 4) * (UnityEngine.Random.Range(0, 2) * 2 - 1) + mapManager.mapSize.y / 2 : UnityEngine.Random.Range(0, mapManager.mapSize.y);
+                } while (!mapManager.map[toReturn.x + toReturn.y * mapManager.mapSize.x]);
+                break;
+        }
+        return toReturn;
+    }
 
 
     private void Update()
@@ -175,6 +220,10 @@ public class AIManager : MonoBehaviour
             mapSizeX = mapManager.mapSize.x,
             mapSizeY = mapManager.mapSize.y,
             walkable = mapManager.map,
+
+            humanSmell = humanSmell,
+            humanWalls = humanWalls,
+            humanZombie = humanZombie,
         };
 
 
@@ -192,6 +241,7 @@ public class AIManager : MonoBehaviour
             mapSizeX = mapManager.mapSize.x,
             mapSizeY = mapManager.mapSize.y,
             blockSize = mapManager.blockSize,
+            zombieStrength = zombieStrength,
         };
         zombiePheromones.Run();
 
@@ -262,8 +312,31 @@ public class AIManager : MonoBehaviour
     }
 
 
+    public void SpawnHumans()
+    {
+        for (int i = 0; i < humans.Count; i++)
+        {
+            Human human = humans[i];
+            int2 pos = getPosition(humanSpawnType);
+
+            float2 spawnOffset = new float2(UnityEngine.Random.Range(0f, MapManager.mapManager.blockSize), UnityEngine.Random.Range(0f, MapManager.mapManager.blockSize)) / 2;
+
+            float2 spawnPointy = new float2(pos.x * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.x * mapManager.blockSize) / 2, pos.y * mapManager.blockSize + mapManager.blockSize - (mapManager.mapSize.y * mapManager.blockSize) / 2);
+
+            humanTransforms[i].gameObject.SetActive(true);
+            human.position = spawnPointy - spawnOffset;
+            human.positionOnGrid = pos.x + pos.y * mapManager.mapSize.x;
+            human.active = true;
+            human.hp = human.maxHp; 
+            human.dead = false;
+            humans[i] = human;
+
+        }
+    }
+
     public void SpawnHuman(float2 pos)
     {
+        if (!simulate) return;
         int2 mapPos = new int2((int)math.floor(pos.x / mapManager.blockSize + mapManager.mapSize.x / 2), (int)math.floor(pos.y / mapManager.blockSize + mapManager.mapSize.y / 2));
         if (!mapManager.map[mapPos.x + mapPos.y * mapManager.mapSize.x]) return;
 
@@ -337,6 +410,10 @@ public class AIManager : MonoBehaviour
         public int mapSizeX;
         public int mapSizeY;
 
+        public float humanZombie;
+        public float humanSmell;
+        public float humanWalls;
+
         public void Execute(int index)
         {
             Human human = humans[index];
@@ -364,7 +441,7 @@ public class AIManager : MonoBehaviour
 
             human.positionOnGrid = posOnGrid.x + posOnGrid.y * mapSizeX;
 
-            float2 dir = math.normalize(GetDestination(posOnGrid) * 0.35f + GetAvoidance(human) * 0.45f + GetWalls(posOnGrid) * 0.15f);// + human.generalDirectionOfTravel * 0.1f + GetWalls(posOnGrid) * 0.1f);
+            float2 dir = math.normalize(GetDestination(posOnGrid) * humanSmell + GetAvoidance(human) * humanZombie);// + GetWalls(posOnGrid) * humanWalls);// + human.generalDirectionOfTravel * 0.1f + GetWalls(posOnGrid) * 0.1f);
             float2 desirePos = human.position + dir * deltaTime * human.speed;
 
             int2 tile = GetPositionOnGrid(desirePos);
@@ -505,9 +582,9 @@ public class AIManager : MonoBehaviour
             int2 pos = GetPositionOnGrid(zombie.position);
             float4 myPheromones = mapPheromones[pos.x + pos.y * mapSizeX];
 
-            if (myPheromones.z > 0.2 * zombie.senseStrength) zombie.state = Zombie.ZombieState.Attacing;
-            else if (myPheromones.y > 0.2 * zombie.senseStrength) zombie.state = Zombie.ZombieState.Allert;
-            else if (myPheromones.w > 0.1 * zombie.senseStrength) zombie.state = Zombie.ZombieState.Allert;
+            if (myPheromones.z * zombie.senseStrength > 0.2) zombie.state = Zombie.ZombieState.Attacing;
+            else if (myPheromones.y * zombie.senseStrength > 0.2) zombie.state = Zombie.ZombieState.Allert;
+            else if (myPheromones.w * zombie.senseStrength > 0.1) zombie.state = Zombie.ZombieState.Allert;
             else zombie.state = Zombie.ZombieState.Iddle;
 
             float2 desirePos = zombie.position;
@@ -661,6 +738,7 @@ public class AIManager : MonoBehaviour
         public float blockSize;
         public int mapSizeX;
         public int mapSizeY;
+        public float zombieStrength;
 
         public void Execute()
         {
@@ -682,7 +760,7 @@ public class AIManager : MonoBehaviour
                         if (zombies[i].sporeBurst)
                         {
                             zombie.sporeBurst = false;
-                            pheromonOnTile.y += 20;
+                            pheromonOnTile.y += zombieStrength;
                         }
                         break;
                 }

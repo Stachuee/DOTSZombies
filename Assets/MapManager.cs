@@ -5,6 +5,8 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MapManager : MonoBehaviour
 {
@@ -35,16 +37,15 @@ public class MapManager : MonoBehaviour
     private void Awake()
     {
         mapManager = this;
+    }
 
+    public void PreGenerateMap()
+    {
         mapPheromones = new NativeArray<float4>(mapSize.x * mapSize.y, Allocator.Persistent);
         map = new NativeArray<bool>(mapSize.x * mapSize.y, Allocator.Persistent);
         crowdedness = new NativeArray<int>(mapSize.x * mapSize.y, Allocator.Persistent);
         GenerateMap();
         DrawMap();
-    }
-
-    private void Start()
-    {
         texture = new Texture2D(mapSize.x, mapSize.y, TextureFormat.ARGB32, false);
         texture.filterMode = FilterMode.Point;
         InvokeRepeating("TextureFromPheromonMap", 0.1f, 0.1f);
@@ -52,19 +53,15 @@ public class MapManager : MonoBehaviour
 
         for (int i = 0; i < mapPheromones.Length; i++)
         {
-            mapPheromones[i] = new float4(0,0,0,0);
+            mapPheromones[i] = new float4(0, 0, 0, 0);
         }
     }
+
     private void OnDestroy()
     {
         mapPheromones.Dispose();
         map.Dispose();
         crowdedness.Dispose();
-    }
-
-    private void Update()
-    {
-
     }
 
 
@@ -168,6 +165,54 @@ public class MapManager : MonoBehaviour
     [SerializeField] bool drawBlood;
 
     [SerializeField] bool drawWalkable;
+
+    [SerializeField] Button clear;
+    [SerializeField] Button crowd;
+    [SerializeField] Button alert;
+    [SerializeField] Button smell;
+    [SerializeField] Button blood;
+
+
+    public void ShowPheromone(int id)
+    {
+        drawCrowdness = false;
+        clear.interactable = true;
+        crowd.interactable = true;
+        alert.interactable = true;
+        smell.interactable = true;
+        blood.interactable = true;
+        drawAlertness = false;
+        drawHumanSmell = false;
+        drawBlood = false;
+
+        switch(id)
+        {
+            case 0:
+                clear.interactable = false;
+                break;
+            case 1:
+                drawCrowdness = true;
+                crowd.interactable = false;
+                break;
+            case 2:
+                drawAlertness = true;
+                alert.interactable = false;
+                break;
+            case 3:
+                drawHumanSmell = true;
+                smell.interactable = false;
+                break;
+            case 4:
+                drawBlood = true;
+                blood.interactable = false;
+                break;
+        }
+    }
+
+    public void ResetMap()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
 
     void TextureFromPheromonMap()
     {
