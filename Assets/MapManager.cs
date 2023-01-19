@@ -118,7 +118,7 @@ public class MapManager : MonoBehaviour
                 {
                     int size = math.min(SetBuilding(x, y, mapChar), 5);
                     for (int i = 0; i < size - 1; i++) for (int j = 0; j < size - 1; j++) mapChar[x + i, y + j] = 'o';
-                    GameObject temp = Instantiate(buildings[size - 2], new Vector3(x * blockSize - mapSize.x * blockSize / 2,0, y * blockSize - mapSize.y * blockSize / 2) , quaternion.identity); // new Vector3((x + size / 2) * blockSize - blockSize / 2, 0, (y + size / 2) * blockSize - blockSize / 2) - new Vector3((mapSize.x * blockSize) / 2 ,0, (mapSize.y * blockSize) / 2)
+                    GameObject temp = Instantiate(buildings[size - 2], new Vector3(x * blockSize - mapSize.x * blockSize / 2,0, y * blockSize - mapSize.y * blockSize / 2) , Quaternion.Euler(-90,0,0)); // new Vector3((x + size / 2) * blockSize - blockSize / 2, 0, (y + size / 2) * blockSize - blockSize / 2) - new Vector3((mapSize.x * blockSize) / 2 ,0, (mapSize.y * blockSize) / 2)
                     temp.transform.position += new Vector3(1, 0, 1) * (blockSize * (size - 1)) / 2;
                     //temp.transform.position += new Vector3(1,0,1) * (size - 1) * blockSize;
                     temp.transform.localScale *= blockSize; // * blockSize 
@@ -159,55 +159,12 @@ public class MapManager : MonoBehaviour
     }
 
 
-    [SerializeField] bool drawCrowdness;
-    [SerializeField] bool drawAlertness;
-    [SerializeField] bool drawHumanSmell;
-    [SerializeField] bool drawBlood;
+    public bool drawCrowdness;
+    public bool drawAlertness;
+    public bool drawHumanSmell;
+    public bool drawBlood;
 
     [SerializeField] bool drawWalkable;
-
-    [SerializeField] Button clear;
-    [SerializeField] Button crowd;
-    [SerializeField] Button alert;
-    [SerializeField] Button smell;
-    [SerializeField] Button blood;
-
-
-    public void ShowPheromone(int id)
-    {
-        drawCrowdness = false;
-        clear.interactable = true;
-        crowd.interactable = true;
-        alert.interactable = true;
-        smell.interactable = true;
-        blood.interactable = true;
-        drawAlertness = false;
-        drawHumanSmell = false;
-        drawBlood = false;
-
-        switch(id)
-        {
-            case 0:
-                clear.interactable = false;
-                break;
-            case 1:
-                drawCrowdness = true;
-                crowd.interactable = false;
-                break;
-            case 2:
-                drawAlertness = true;
-                alert.interactable = false;
-                break;
-            case 3:
-                drawHumanSmell = true;
-                smell.interactable = false;
-                break;
-            case 4:
-                drawBlood = true;
-                blood.interactable = false;
-                break;
-        }
-    }
 
     public void ResetMap()
     {

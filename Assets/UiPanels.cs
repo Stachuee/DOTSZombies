@@ -6,11 +6,15 @@ using UnityEngine.UI;
 public class UiPanels : MonoBehaviour
 {
     [SerializeField]
-    GameObject mapPanel;
-    [SerializeField]
     GameObject zombiePanel;
     [SerializeField]
     GameObject humanPanel;
+
+    [SerializeField]
+    Button zombieButton;
+
+    [SerializeField]
+    Button humanButton;
 
 
     public void ChangePanel(int id)
@@ -18,19 +22,16 @@ public class UiPanels : MonoBehaviour
         switch(id)
         {
             case 0:
-                mapPanel.SetActive(true);
-                zombiePanel.SetActive(false);
-                humanPanel.SetActive(false);
-                break;
-            case 1:
-                mapPanel.SetActive(false);
                 zombiePanel.SetActive(true);
                 humanPanel.SetActive(false);
+                zombieButton.interactable = false;
+                humanButton.interactable = true;
                 break;
-            case 2:
-                mapPanel.SetActive(false);
+            case 1:
                 zombiePanel.SetActive(false);
                 humanPanel.SetActive(true);
+                humanButton.interactable = false;
+                zombieButton.interactable = true;
                 break;
         }
     }

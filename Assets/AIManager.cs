@@ -146,7 +146,7 @@ public class AIManager : MonoBehaviour
             humanTransforms.Add(temp.transform);
         }
         
-        //SpawnHumans();
+        SpawnHumans();
 
         z_AccessArray = new TransformAccessArray(zombieTransforms.ToArray());
         h_AccessArray = new TransformAccessArray(humanTransforms.ToArray());
@@ -357,6 +357,11 @@ public class AIManager : MonoBehaviour
         }
     }
 
+    public void Pause()
+    {
+        simulate = !simulate;
+    }
+
     void SortZombies()
     {
         int i, j;
@@ -397,7 +402,7 @@ public class AIManager : MonoBehaviour
 
     }
 
-    //[BurstCompile]
+    [BurstCompile]
     struct HumanDecision : IJobParallelFor
     {
         [ReadOnly] public float deltaTime;
@@ -441,7 +446,9 @@ public class AIManager : MonoBehaviour
 
             human.positionOnGrid = posOnGrid.x + posOnGrid.y * mapSizeX;
 
-            float2 dir = math.normalize(GetDestination(posOnGrid) * humanSmell + GetAvoidance(human) * humanZombie);// + GetWalls(posOnGrid) * humanWalls);// + human.generalDirectionOfTravel * 0.1f + GetWalls(posOnGrid) * 0.1f);
+            float2 dir = GetDestination(posOnGrid) * humanSmell + GetAvoidance(human) * humanZombie;// + GetWalls(posOnGrid) * humanWalls);// + human.generalDirectionOfTravel * 0.1f + GetWalls(posOnGrid) * 0.1f);
+            
+            dir = math.length(dir) > 0 ? math.normalize(dir) : 0;
             float2 desirePos = human.position + dir * deltaTime * human.speed;
 
             int2 tile = GetPositionOnGrid(desirePos);
@@ -620,7 +627,8 @@ public class AIManager : MonoBehaviour
                             int2 zombiePos = GetPositionOnGrid(zombie.position);
                             if (humanPos.x == zombiePos.x && humanPos.y == zombiePos.y)
                             {
-                                float2 dirToWalk = math.normalize(humans[i].position - zombie.position);
+                                float2 dirToWalk = humans[i].position - zombie.position;
+                                dirToWalk = math.length(dirToWalk) > 0 ? math.normalize(dirToWalk) : 0;
                                 desirePos = zombie.position + dirToWalk * deltaTime * zombie.speed;
                             }
                         }

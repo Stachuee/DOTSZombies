@@ -98,7 +98,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 36d869659e93d4642aac5ca0f77cd429, type: 2}
+      objectReference: {fileID: 2100000, guid: 946b9c946781ccc48a6400a4e7332b69, type: 2}
     - target: {fileID: -3921846944989827609, guid: d736045e8f26b3040a0b6eea33a613ba,
         type: 3}
       propertyPath: m_IsActive
@@ -109,6 +109,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: zombielod
       objectReference: {fileID: 0}
+    - target: {fileID: 4742473837712756890, guid: d736045e8f26b3040a0b6eea33a613ba,
+        type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.15162349
+      objectReference: {fileID: 0}
     - target: {fileID: 5722408808163678667, guid: d736045e8f26b3040a0b6eea33a613ba,
         type: 3}
       propertyPath: m_IsActive
@@ -118,7 +123,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 36d869659e93d4642aac5ca0f77cd429, type: 2}
+      objectReference: {fileID: 2100000, guid: 946b9c946781ccc48a6400a4e7332b69, type: 2}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d736045e8f26b3040a0b6eea33a613ba, type: 3}
 --- !u!4 &4655355489126487072 stripped
